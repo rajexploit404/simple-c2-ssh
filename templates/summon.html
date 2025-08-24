@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+<head>
+<title>Summon SSH {{ ssh_info.host }}</title>
+<style>
+body { background:#0d0d0d; color:#00ff99; font-family: monospace; padding:20px; }
+h2 { color:#00ff99; }
+pre { background:#111; padding:10px; max-height:400px; overflow:auto; border:1px solid #00ff99; border-radius:5px; }
+.command-history { background:#222; padding:5px; margin-top:5px; border:1px solid #00ff99; border-radius:5px; max-height:200px; overflow:auto; }
+button { margin:2px; padding:5px 10px; background:#00ff99; color:#0d0d0d; border:none; border-radius:5px; cursor:pointer; }
+button:hover { background:#00cc77; }
+input[type=text] { width:80%; padding:5px; background:#111; color:#00ff99; border:1px solid #00ff99; border-radius:5px; }
+</style>
+</head>
+<body>
+<h2>SSH: {{ ssh_info.host }}:{{ ssh_info.port }} - {{ ssh_info.user }}</h2>
+<a href="{{ url_for('dashboard') }}" style="color:#00ff99;">&lt; Back to Dashboard</a>
+
+<div>
+<button onclick="runPreset('uname -a')">uname -a</button>
+<button onclick="runPreset('pwd')">pwd</button>
+<button onclick="runPreset('id')">id</button>
+<button onclick="runPreset('echo {{ SUDO_PASS }} | sudo -S reboot')">sudo reboot</button>
+</div>
+
+<form id="cmdForm">
+<input type="text" id="commandInput" placeholder="Enter command"/>
+<button type="submit">Run</button>
+</form>
+
+<h3>Output:</h3>
+<pre id="output"></pre>
+
+<h3>Command History:</h3>
+<div id="history" class="command-history"></div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+function runPreset(cmd){
+    $("#commandInput").val(cmd);
+    sendCommand(cmd);
+}
+
+$("#cmdForm").submit(function(e){
+    e.preventDefault();
+    let cmd = $("#commandInput").val();
+    if(!cmd) return;
+    sendCommand(cmd);
+});
+
+function sendCommand(cmd){
+    // show output
+    $("#output").append("\n$ "+cmd+"\n");
+    // send AJAX
+    $.ajax({
+        url: "/summon/{{ ssh_index }}",
+        type: "POST",
+        data: { command: cmd },
+        success: function(res){
+            let out = res.output || "";
+            $("#output").append(out+"\n");
+            $("#output").scrollTop($("#output")[0].scrollHeight);
+
+            // Command History
+            let hist = $("<div>").text("$ "+cmd+" => "+out.replace(/\n/g," | "));
+            $("#history").append(hist);
+            $("#history").scrollTop($("#history")[0].scrollHeight);
+
+            // clear input
+            $("#commandInput").val("");
+        },
+        error: function(err){
+            $("#output").append("Error: "+err.responseText+"\n");
+        }
+    });
+}
+</script>
+</body>
+</html>

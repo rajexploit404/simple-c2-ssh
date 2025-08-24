@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+<head>
+<title>SSH Dashboard</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<style>
+body {
+    background:#0d0d0d;
+    color:#00ff99;
+    font-family: 'Courier New', monospace;
+    padding:20px;
+}
+h2,h3 { color:#00ff99; }
+a { color:#00ff99; text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+form { margin-bottom:20px; }
+input[type=text], input[type=password], input[type=number] {
+    padding:5px;
+    background:#111;
+    border:1px solid #00ff99;
+    border-radius:5px;
+    color:#00ff99;
+    margin-right:5px;
+}
+
+input[type=submit], button {
+    padding:5px 10px;
+    background:#00ff99;
+    border:none;
+    border-radius:5px;
+    color:#0d0d0d;
+    cursor:pointer;
+    transition:0.3s;
+}
+input[type=submit]:hover, button:hover { background:#00cc77; }
+
+table {border-collapse:collapse; width:100%; margin-top:10px;}
+th, td {border:1px solid #00ff99; padding:5px; text-align:left; vertical-align:top;}
+.note {font-size:0.9em; color:#00cc77;}
+</style>
+</head>
+<body>
+<h2>SSH Dashboard</h2>
+<a href="{{ url_for('logout') }}">Logout</a>
+
+<h3>Add SSH</h3>
+<form method="post" action="{{ url_for('add_ssh') }}">
+    <input type="text" name="host" placeholder="Host" required/>
+    <input type="number" name="port" value="22" placeholder="Port" required/>
+    <input type="text" name="user" placeholder="User" required/>
+    <input type="password" name="password" placeholder="Password" required/>
+    <input type="text" name="note" placeholder="Server note"/>
+    <input type="submit" value="Add SSH"/>
+</form>
+
+<h3>SSH List</h3>
+<form id="batchForm">
+<table>
+<tr>
+<th>Select</th>
+<th>#</th>
+<th>Host</th>
+<th>Port</th>
+<th>User</th>
+<th>Note</th>
+<th>Actions</th>
+</tr>
+{% for ssh in ssh_list %}
+<tr>
+<td><input type="checkbox" name="ssh_index" value="{{ loop.index0 }}"/></td>
+<td>{{ loop.index }}</td>
+<td>{{ ssh.host }}</td>
+<td>{{ ssh.port }}</td>
+<td>{{ ssh.user }}</td>
+<td class="note">{{ ssh.get('note','') }}</td>
+<td>
+    <a href="{{ url_for('summon', ssh_index=loop.index0) }}">Summon</a> |
+    <a href="{{ url_for('health_page', ssh_index=loop.index0) }}">Health</a> |
+    <a href="{{ url_for('edit_ssh', ssh_index=loop.index0) }}">Edit</a> |
+    <a href="{{ url_for('delete_ssh', ssh_index=loop.index0) }}" onclick="return confirm('Delete SSH {{ ssh.host }} ?')">Delete</a> |
+    <button type="button" onclick="sudoReboot({{ loop.index0 }})">Sudo Reboot</button>
+</td>
+</tr>
+{% endfor %}
+</table>
+
+<button type="button" onclick="rebootAll()">Reboot All Selected</button>
+<button type="button" onclick="exportLogs()">Export Logs</button>
+</form>
+
+<script>
+function rebootAll(){
+    let indices = [];
+    $("input[name='ssh_index']:checked").each(function(){ indices.push($(this).val()) });
+    if(indices.length==0){ alert("Select SSH servers to reboot"); return; }
+    if(!confirm("Are you sure you want to reboot all selected servers?")) return;
+    $.post("/reboot_all",{ssh_index:indices},function(res){
+        let msg = "";
+        for(let host in res) msg += host+": "+res[host]+"\n";
+        alert(msg);
+    },"json");
+}
+
+function sudoReboot(idx){
+    if(confirm("Are you sure?")) window.location.href="/sudo_reboot/"+idx;
+}
+
+function exportLogs(){
+    window.open("/export_logs","_blank");
+}
+</script>
+</body>
+</html>
+

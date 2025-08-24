@@ -1,0 +1,16 @@
+[
+  {
+    "time": "2025-08-23 20:47:59",
+    "user": "admin",
+    "host": "-",
+    "command": "LOGIN SUCCESS",
+    "output": ""
+  },
+  {
+    "time": "2025-08-23 20:48:18",
+    "user": "admin",
+    "host": "127.0.0.1",
+    "command": "ls",
+    "output": ""
+  }
+]
